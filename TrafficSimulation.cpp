@@ -22,7 +22,8 @@ public:
         int first_direction_arrival = 0;
         int second_direction_arrival = 0;
 
-        for (int i = 0; i < simulation_duration / 3; ++i) {
+        while (first_direction_queue.empty() || first_direction_queue.back().time_offset <= simulation_duration
+        || second_direction_queue.back().time_offset <= simulation_duration) {
             first_direction_queue.push_back(Car(first_direction_arrival +=
                                                  random_expovariate(1.0 / 12)));
             second_direction_queue.push_back(Car(second_direction_arrival +=
@@ -128,7 +129,7 @@ int main() {
             TrafficSimulation simulation(n, m);
             simulation.simulate(simulating_time);
             double avg_waiting_time = simulation.get_average_waiting_time();
-            std::cout << "n: " << n << " | m: " << m << "| average waiting time: " << avg_waiting_time << std::endl;
+            //std::cout << "n: " << n << " | m: " << m << "| average waiting time: " << avg_waiting_time << std::endl;
             sum_in_n += avg_waiting_time;
             if (avg_waiting_time < min_avg_waiting_time) {
                 min_avg_waiting_time = avg_waiting_time;

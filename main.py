@@ -31,7 +31,9 @@ class TrafficSimulation:
     def generate_car_arrivals(self, simulation_duration):
         first_direction_arrival = second_direction_arrival = 0
 
-        for i in range(simulation_duration // 3):
+        while not len(self.first_direction_queue) or self.first_direction_queue[-1].time_offset <= simulation_duration \
+                or self.second_direction_queue[-1].time_offset <= simulation_duration:
+
             self.first_direction_queue.append(Car(
                 first_direction_arrival := (first_direction_arrival + random.expovariate(1 / 12))))
             self.second_direction_queue.append(Car(
@@ -85,15 +87,30 @@ class TrafficSimulation:
 optimal_n = 0
 optimal_m = 0
 min_avg_waiting_time = float('inf')
+wait_time = []
 
-for n in range(45, 46):
-    for m in range(103, 107):
-        simulation = TrafficSimulation(n, m)
-        simulation.simulate(1_000_000)
-        if simulation.get_average_waiting_time() < min_avg_waiting_time:
-            min_avg_waiting_time = simulation.get_average_waiting_time()
-            optimal_n = n
-            optimal_m = m
+for n in range(100):
+    simulation = TrafficSimulation(46, 106)
+    simulation.simulate(40_000)
+    wait_time.append(simulation.get_average_waiting_time())
+
+mean = sum(wait_time) / len(wait_time)
+
+a = 0
+for i in wait_time:
+    a += (i - mean)**2
+
+dispersion = a/100
+print(dispersion, mean)
+
+# for n in range(45, 46):
+#     for m in range(103, 107):
+#         simulation = TrafficSimulation(n, m)
+#         simulation.simulate(1_000_000)
+#         if simulation.get_average_waiting_time() < min_avg_waiting_time:
+#             min_avg_waiting_time = simulation.get_average_waiting_time()
+#             optimal_n = n
+#             optimal_m = m
 
 print("Optimal n:", optimal_n)
 print("Optimal m:", optimal_m)

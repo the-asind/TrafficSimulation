@@ -27,6 +27,9 @@ class TrafficSimulation:
         self.total_waiting_time = 0  # Суммарное время ожидания
         self.car_count = 0  # Количество проехавших машин
 
+        self.total_f = self.total_s = 0
+        self.cars_f = self.cars_s = 0
+
     # Создаёт на каждую вторую секунду симуляции по машине в каждую очередь
     def generate_car_arrivals(self, simulation_duration):
         first_direction_arrival = second_direction_arrival = 0
@@ -38,6 +41,9 @@ class TrafficSimulation:
                 first_direction_arrival := (first_direction_arrival + random.expovariate(1 / 12))))
             self.second_direction_queue.append(Car(
                 second_direction_arrival := (second_direction_arrival + random.expovariate(1 / 5))))
+
+        print(len(self.first_direction_queue), len(self.second_direction_queue), "cars count")
+
 
     def simulate(self, simulation_duration):
         self.generate_car_arrivals(simulation_duration)
@@ -62,6 +68,14 @@ class TrafficSimulation:
         if direction[0].time_offset <= self.elapsed_time:
             self.total_waiting_time += (self.elapsed_time - direction[0].time_offset)
             self.car_count += 1
+
+            if direction == self.first_direction_queue:
+                self.total_f += (self.elapsed_time - direction[0].time_offset)
+                self.cars_f += 1
+            else:
+                self.total_s += (self.elapsed_time - direction[0].time_offset)
+                self.cars_s += 1
+
             direction.pop(0)
 
     def add_all_cars_waiting_time(self):
@@ -79,6 +93,9 @@ class TrafficSimulation:
                 break
 
     def get_average_waiting_time(self):
+        print(self.cars_f, self.total_f, self.total_f/self.cars_f)
+        print(self.cars_s, self.total_s, self.total_s/self.cars_s)
+
         return self.total_waiting_time / self.car_count if self.car_count != 0 else float('inf')
 
 
@@ -88,20 +105,24 @@ optimal_n = 0
 optimal_m = 0
 min_avg_waiting_time = float('inf')
 wait_time = []
+#
+# for n in range(100):
+#     simulation = TrafficSimulation(46, 106)
+#     simulation.simulate(40_000)
+#     wait_time.append(simulation.get_average_waiting_time())
+#
+# mean = sum(wait_time) / len(wait_time)
+#
+# a = 0
+# for i in wait_time:
+#     a += (i - mean)**2
+#
+# dispersion = a/100
+# print(dispersion, mean)
 
-for n in range(100):
-    simulation = TrafficSimulation(46, 106)
-    simulation.simulate(40_000)
-    wait_time.append(simulation.get_average_waiting_time())
-
-mean = sum(wait_time) / len(wait_time)
-
-a = 0
-for i in wait_time:
-    a += (i - mean)**2
-
-dispersion = a/100
-print(dispersion, mean)
+simulation = TrafficSimulation(47, 116)
+simulation.simulate(1_000)
+print(simulation.get_average_waiting_time())
 
 # for n in range(45, 46):
 #     for m in range(103, 107):

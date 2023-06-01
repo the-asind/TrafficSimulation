@@ -36,16 +36,44 @@ class TrafficSimulation:
 
         while not len(self.first_direction_queue) or self.first_direction_queue[-1].time_offset <= simulation_duration \
                 or self.second_direction_queue[-1].time_offset <= simulation_duration:
-
             self.first_direction_queue.append(Car(
-                first_direction_arrival := (first_direction_arrival + random.expovariate(1 / 12))))
+                first_direction_arrival := (first_direction_arrival + random.expovariate(1 / self.first_direction_arrival_time))))
             self.second_direction_queue.append(Car(
-                second_direction_arrival := (second_direction_arrival + random.expovariate(1 / 5))))
+                second_direction_arrival := (second_direction_arrival + random.expovariate(1 / self.second_direction_arrival_time))))
 
         print(len(self.first_direction_queue), len(self.second_direction_queue), "cars count")
 
+    def simulate_q_schemes(self, simulation_duration):
+        fd_queue_time_arrival = 0
+        fd_delay = self.cars_cooldown
+        fd_sum_waiting_time = 0
+        fd_cars = 0
+        fd_prev_green = 0
 
-    def simulate(self, simulation_duration):
+        sd_queue_time_arrival = 0
+        sd_delay = self.cars_cooldown
+        sd_sum_waiting_time = 0
+        sd_cars = 0
+        sd_prev_green = 0
+
+        while True:
+            fd_cars += 1
+            fd_queue_time_arrival += random.expovariate(1 / self.first_direction_arrival_time)
+
+            (isGreenNow, timeOfGreenStart) = find_nearest_fd_green_light(fd_queue_time_arrival, 1)
+
+            # Если светофор изменился, то обнуляем задержку
+            if fd_prev_green != timeOfGreenStart:
+                fd_delay = self.cars_cooldown
+
+            if isGreenNow:
+                # Если машина на зелёном и перед ней никого нет
+                if timeOfGreenStart+fd_delay <= fd_queue_time_arrival:
+                    fd_delay = fd_queue_time_arrival - timeOfGreenStart + self.cars_cooldown
+                else:
+                    pass # TODO:
+
+    def simulate_delta_t(self, simulation_duration):
         self.generate_car_arrivals(simulation_duration)
 
         while self.elapsed_time < simulation_duration:
@@ -55,7 +83,7 @@ class TrafficSimulation:
                 self.elapsed_time += self.cars_cooldown
             # Если горит зелёный сигнал на втором направлении
             elif self.elapsed_time % (self.n + self.m + self.red_light_time) >= \
-                    self.n + self.red_light_time + self.cars_cooldown-1:
+                    self.n + self.red_light_time + self.cars_cooldown - 1:
                 self.process_car(self.second_direction_queue)
                 self.elapsed_time += self.cars_cooldown
             else:
@@ -93,8 +121,8 @@ class TrafficSimulation:
                 break
 
     def get_average_waiting_time(self):
-        print(self.cars_f, self.total_f, self.total_f/self.cars_f)
-        print(self.cars_s, self.total_s, self.total_s/self.cars_s)
+        print(self.cars_f, self.total_f, self.total_f / self.cars_f)
+        print(self.cars_s, self.total_s, self.total_s / self.cars_s)
 
         return self.total_waiting_time / self.car_count if self.car_count != 0 else float('inf')
 
@@ -121,7 +149,7 @@ wait_time = []
 # print(dispersion, mean)
 
 simulation = TrafficSimulation(47, 116)
-simulation.simulate(1_000)
+simulation.simulate_delta_t(1_000)
 print(simulation.get_average_waiting_time())
 
 # for n in range(45, 46):

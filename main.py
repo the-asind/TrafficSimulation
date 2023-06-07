@@ -37,11 +37,11 @@ class TrafficSimulation:
         while not len(self.first_direction_queue) or self.first_direction_queue[-1] <= simulation_duration \
                 or self.second_direction_queue[-1] <= simulation_duration:
             self.first_direction_queue.append(
-                first_direction_arrival := (first_direction_arrival + random.expovariate(1 / self.first_direction_arrival_time)))
+                first_direction_arrival := (first_direction_arrival + 12))
             self.second_direction_queue.append(
-                second_direction_arrival := (second_direction_arrival + random.expovariate(1 / self.second_direction_arrival_time)))
+                second_direction_arrival := (second_direction_arrival + 5))
 
-        print(self.n, self.m, len(self.first_direction_queue), len(self.second_direction_queue), "cars count generated")
+        print(self.n, "сгенерировано машин на первом направлении:", len(self.first_direction_queue), "на втором направлении", len(self.second_direction_queue))
         # self.generate_graph_of_cars_arriving()
 
     def generate_graph_of_cars_arriving(self):
@@ -142,6 +142,41 @@ class TrafficSimulation:
         # После того как закончилось время симуляции, добавляем время ожидания тех машин, что так и не проехали
         self.add_all_cars_waiting_time()
 
+    def simulate_round(self, simulation_duration, m):
+        self.generate_car_arrivals(simulation_duration)
+        fd_delay = m
+        sd_delay = m
+        for i in self.first_direction_queue:
+            if i > simulation_duration:
+                break
+            if i >= fd_delay:
+                fd_delay = i+m
+                self.elapsed_time = i
+            else:
+                self.elapsed_time = fd_delay
+                fd_delay += m
+
+            self.process_car(self.first_direction_queue)
+            self.waiting_time_update_fd.append((self.total_f / self.cars_f) if self.cars_f != 0 else 0)
+
+        for i in self.second_direction_queue:
+            if i > simulation_duration:
+                break
+            if i >= sd_delay:
+                sd_delay = i + m
+                self.elapsed_time = i
+            else:
+                self.elapsed_time = sd_delay
+                sd_delay += m
+
+            self.process_car(self.second_direction_queue)
+            self.waiting_time_update_sd.append((self.total_s / self.cars_s) if self.cars_s != 0 else 0)
+        # self.generate_graph_of_summary_waiting_time()
+
+
+            #self.waiting_time_update.append((self.total_waiting_time / self.car_count) if self.car_count != 0 else 0)
+
+
     def process_car(self, direction):
         if direction[0] <= self.elapsed_time:
             self.total_waiting_time += (self.elapsed_time - direction[0])
@@ -173,13 +208,16 @@ class TrafficSimulation:
                 break
 
     def get_average_waiting_time(self):
-        print("первое напр: машины сум./вр. ож. сум./ср.вр.ож", self.cars_f, self.total_f, self.total_f / self.cars_f)
-        print("второе напр: машины сум./вр. ож. сум./ср.вр.ож", self.cars_s, self.total_s, self.total_s / self.cars_s)
+        print("первое напр: машины сум.", self.cars_f, "/вр. ож. сум.", self.total_f, "/ср.вр.ож", ((self.total_f / self.cars_f) if self.cars_f else 0) - 123.75)
+        print("второе напр: машины сум.", self.cars_s, "/вр. ож. сум.", self.total_s, "/ср.вр.ож", ((self.total_s / self.cars_s) if self.cars_s else 0) - 123.75)
+        print("среднее время ожидания на обоих напр.:", ((self.total_s / self.cars_s) if self.cars_s else 0 + (self.total_f / self.cars_f) if self.cars_f else 0) / 2 - 123.75, end='\n\n')
 
         return self.total_waiting_time / self.car_count if self.car_count != 0 else float('inf')
 
     def get_all_these_things(self):
-        return self.cars_f, self.total_f / self.cars_f, self.cars_s, self.total_s / self.cars_s
+        if self.cars_f and self.cars_s:
+            return self.cars_f, self.total_f / self.cars_f, self.cars_s, self.total_s / self.cars_s
+        return 0, float('inf'), 0, float('inf')
 
 
 # Test simulation with different values of n and m
@@ -208,23 +246,42 @@ wait_time = []
 # print(simulation.get_average_waiting_time())
 
 cars_f = wait_f = cars_s = wait_s = wait = cnt = 0
-for n in range(53, 56):
-    for m in range(144, 148):
-        simulation = TrafficSimulation(n, m)
-        simulation.simulate_delta_t(1_000)
-        cars_f_temp, wait_f_temp, cars_s_temp, wait_s_temp = simulation.get_all_these_things()
-        cars_f += cars_f_temp
-        wait_f += wait_f_temp
-        cars_s += cars_s_temp
-        wait_s += wait_s_temp
-        cnt += 1
+for i in range(80):
+    n=126
+    simulation = TrafficSimulation(n, n)
+    simulation.simulate_delta_t(1_0000)
+    cars_f_temp, wait_f_temp, cars_s_temp, wait_s_temp = simulation.get_all_these_things()
+    cars_f += cars_f_temp
+    wait_f += wait_f_temp
+    cars_s += cars_s_temp
+    wait_s += wait_s_temp
+    cnt += 1
 
-        if simulation.get_average_waiting_time() < min_avg_waiting_time:
-            min_avg_waiting_time = simulation.get_average_waiting_time()
-            optimal_n = n
-            optimal_m = m
-
+    if simulation.get_average_waiting_time() < min_avg_waiting_time:
+        # min_avg_waiting_time = simulation.get_average_waiting_time()
+        optimal_n = n
 print("Optimal n:", optimal_n)
 print("Optimal m:", optimal_m)
 print("Minimum average waiting time:", min_avg_waiting_time)
 print("cars_f", cars_f/cnt, "wait_f", wait_f/cnt, "cars_s", cars_s/cnt, "wait_s", wait_s/cnt)
+
+cars_f = wait_f = cars_s = wait_s = wait = cnt = min_avg_waiting_time = 0
+
+for m in range(0, 80):
+    simulation = TrafficSimulation(m, m)
+    simulation.simulate_round(1_000, m)
+    cars_f_temp, wait_f_temp, cars_s_temp, wait_s_temp = simulation.get_all_these_things()
+    cars_f += cars_f_temp
+    wait_f += wait_f_temp
+    cars_s += cars_s_temp
+    wait_s += wait_s_temp
+    cnt += 1
+
+    if simulation.get_average_waiting_time() < min_avg_waiting_time:
+        min_avg_waiting_time = simulation.get_average_waiting_time()
+        optimal_m = m
+print("Optimal m:", optimal_m)
+print("Minimum average waiting time:", min_avg_waiting_time)
+print("cars_f", cars_f / cnt, "wait_f", wait_f / cnt, "cars_s", cars_s / cnt, "wait_s", wait_s / cnt)
+
+
